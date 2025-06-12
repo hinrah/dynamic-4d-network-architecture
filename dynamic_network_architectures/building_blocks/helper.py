@@ -7,6 +7,7 @@ from torch.nn.modules.conv import _ConvNd, _ConvTransposeNd
 from torch.nn.modules.dropout import _DropoutNd
 from torch.nn.modules.instancenorm import _InstanceNorm
 
+from dynamic_network_architectures.building_blocks.operations_4D import Conv4DHypercross, TranspConv4D, Conv4D, Conv3Din4D
 
 def convert_dim_to_conv_op(dimension: int) -> Type[_ConvNd]:
     """
@@ -19,14 +20,16 @@ def convert_dim_to_conv_op(dimension: int) -> Type[_ConvNd]:
         return nn.Conv2d
     elif dimension == 3:
         return nn.Conv3d
+    elif dimension == 4:
+        return Conv4D
     else:
-        raise ValueError("Unknown dimension. Only 1, 2 and 3 are supported")
+        raise ValueError("Unknown dimension. Only 1, 2, 3, and 4 are supported")
 
 
 def convert_conv_op_to_dim(conv_op: Type[_ConvNd]) -> int:
     """
     :param conv_op: conv class
-    :return: dimension: 1, 2 or 3
+    :return: dimension: 1, 2, 3 or 4
     """
     if issubclass(conv_op, nn.Conv1d):
         return 1
@@ -34,8 +37,14 @@ def convert_conv_op_to_dim(conv_op: Type[_ConvNd]) -> int:
         return 2
     elif issubclass(conv_op, nn.Conv3d):
         return 3
+    elif issubclass(conv_op, Conv4DHypercross):
+        return 4
+    elif issubclass(conv_op, Conv4D):
+        return 4
+    elif issubclass(conv_op, Conv3Din4D):
+        return 4
     else:
-        raise ValueError("Unknown dimension. Only 1d 2d and 3d conv are supported. got %s" % str(conv_op))
+        raise ValueError("Unknown dimension. Only 1d 2d 3d and 4d conv are supported. got %s" % str(conv_op))
 
 
 def get_matching_pool_op(conv_op: Type[_ConvNd] = None,
@@ -56,9 +65,6 @@ def get_matching_pool_op(conv_op: Type[_ConvNd] = None,
     if conv_op is not None:
         dimension = convert_conv_op_to_dim(conv_op)
     assert dimension in [1, 2, 3], 'Dimension must be 1, 2 or 3'
-
-    if conv_op is not None:
-        dimension = convert_conv_op_to_dim(conv_op)
 
     if dimension == 1:
         if pool_type == 'avg':
@@ -94,7 +100,6 @@ def get_matching_pool_op(conv_op: Type[_ConvNd] = None,
             else:
                 return nn.MaxPool3d
 
-
 def get_matching_instancenorm(conv_op: Type[_ConvNd] = None, dimension: int = None) -> Type[_InstanceNorm]:
     """
     You MUST set EITHER conv_op OR dimension. Do not set both!
@@ -129,13 +134,15 @@ def get_matching_convtransp(conv_op: Type[_ConvNd] = None, dimension: int = None
         "You MUST set EITHER conv_op OR dimension. Do not set both!"
     if conv_op is not None:
         dimension = convert_conv_op_to_dim(conv_op)
-    assert dimension in [1, 2, 3], 'Dimension must be 1, 2 or 3'
+    assert dimension in [1, 2, 3, 4], 'Dimension must be 1, 2, 3 or 4'
     if dimension == 1:
         return nn.ConvTranspose1d
     elif dimension == 2:
         return nn.ConvTranspose2d
     elif dimension == 3:
         return nn.ConvTranspose3d
+    elif dimension == 4:
+        return TranspConv4D
 
 
 def get_matching_batchnorm(conv_op: Type[_ConvNd] = None, dimension: int = None) -> Type[_BatchNorm]:
@@ -192,6 +199,8 @@ def maybe_convert_scalar_to_list(conv_op, scalar):
             return [scalar] * 3
         elif issubclass(conv_op , nn.Conv1d):
             return [scalar] * 1
+        elif issubclass(conv_op, Conv4DHypercross) or issubclass(conv_op, Conv4D) or issubclass(conv_op, Conv3Din4D):
+            return [scalar] * 4
         else:
             raise RuntimeError("Invalid conv op: %s" % str(conv_op))
     else:

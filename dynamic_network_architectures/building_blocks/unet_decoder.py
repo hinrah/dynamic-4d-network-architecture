@@ -24,7 +24,8 @@ class UNetDecoder(nn.Module):
                  dropout_op_kwargs: dict = None,
                  nonlin: Union[None, Type[torch.nn.Module]] = None,
                  nonlin_kwargs: dict = None,
-                 conv_bias: bool = None
+                 conv_bias: bool = None,
+                 padding_mode: str = "zeros"
                  ):
         """
         This class needs the skips of the encoder as input in its forward.
@@ -85,13 +86,14 @@ class UNetDecoder(nn.Module):
                 dropout_op_kwargs,
                 nonlin,
                 nonlin_kwargs,
-                nonlin_first
+                nonlin_first,
+                padding_mode
             ))
 
             # we always build the deep supervision outputs so that we can always load parameters. If we don't do this
             # then a model trained with deep_supervision=True could not easily be loaded at inference time where
             # deep supervision is not needed. It's just a convenience thing
-            seg_layers.append(encoder.conv_op(input_features_skip, num_classes, 1, 1, 0, bias=True))
+            seg_layers.append(encoder.conv_op(input_features_skip, num_classes, 1, 1, 0, bias=True, padding_mode=padding_mode),)
 
         self.stages = nn.ModuleList(stages)
         self.transpconvs = nn.ModuleList(transpconvs)

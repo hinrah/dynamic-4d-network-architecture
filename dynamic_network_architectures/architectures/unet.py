@@ -33,7 +33,8 @@ class PlainConvUNet(nn.Module):
                  nonlin: Union[None, Type[torch.nn.Module]] = None,
                  nonlin_kwargs: dict = None,
                  deep_supervision: bool = False,
-                 nonlin_first: bool = False
+                 nonlin_first: bool = False,
+                 padding_mode: str = "zeros"
                  ):
         """
         nonlin_first: if True you get conv -> nonlin -> norm. Else it's conv -> norm -> nonlin
@@ -53,9 +54,9 @@ class PlainConvUNet(nn.Module):
         self.encoder = PlainConvEncoder(input_channels, n_stages, features_per_stage, conv_op, kernel_sizes, strides,
                                         n_conv_per_stage, conv_bias, norm_op, norm_op_kwargs, dropout_op,
                                         dropout_op_kwargs, nonlin, nonlin_kwargs, return_skips=True,
-                                        nonlin_first=nonlin_first)
+                                        nonlin_first=nonlin_first, padding_mode=padding_mode)
         self.decoder = UNetDecoder(self.encoder, num_classes, n_conv_per_stage_decoder, deep_supervision,
-                                   nonlin_first=nonlin_first)
+                                   nonlin_first=nonlin_first, padding_mode=padding_mode)
 
     def forward(self, x):
         skips = self.encoder(x)

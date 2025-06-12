@@ -27,7 +27,8 @@ class PlainConvEncoder(nn.Module):
                  nonlin_kwargs: dict = None,
                  return_skips: bool = False,
                  nonlin_first: bool = False,
-                 pool: str = 'conv'
+                 pool: str = 'conv',
+                 padding_mode: str = "zeros"
                  ):
 
         super().__init__()
@@ -59,7 +60,7 @@ class PlainConvEncoder(nn.Module):
                 raise RuntimeError()
             stage_modules.append(StackedConvBlocks(
                 n_conv_per_stage[s], conv_op, input_channels, features_per_stage[s], kernel_sizes[s], conv_stride,
-                conv_bias, norm_op, norm_op_kwargs, dropout_op, dropout_op_kwargs, nonlin, nonlin_kwargs, nonlin_first
+                conv_bias, norm_op, norm_op_kwargs, dropout_op, dropout_op_kwargs, nonlin, nonlin_kwargs, nonlin_first, padding_mode
             ))
             stages.append(nn.Sequential(*stage_modules))
             input_channels = features_per_stage[s]
@@ -101,5 +102,3 @@ class PlainConvEncoder(nn.Module):
                 output += self.stages[s].compute_conv_feature_map_size(input_size)
             input_size = [i // j for i, j in zip(input_size, self.strides[s])]
         return output
-
-
